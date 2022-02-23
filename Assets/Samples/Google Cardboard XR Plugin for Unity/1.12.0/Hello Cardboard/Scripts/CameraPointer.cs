@@ -25,7 +25,10 @@ using UnityEngine;
 public class CameraPointer : MonoBehaviour
 {
     private const float _maxDistance = 10;
-    private GameObject _gazedAtObject = null;
+    private GameObject _gazedAtObject = default;
+    [SerializeField] private float time_counter = 0;
+    [SerializeField] private float delay;
+    [SerializeField] private bool isLooking;
 
     /// <summary>
     /// Update is called once per frame.
@@ -38,19 +41,46 @@ public class CameraPointer : MonoBehaviour
         if (Physics.Raycast(transform.position, transform.forward, out hit, _maxDistance))
         {
             // GameObject detected in front of the camera.
+            if (!hit.transform.gameObject.CompareTag("pointerObject"))
+            {
+                isLooking = false;
+                time_counter = 0;
+                _gazedAtObject?.SendMessage("OnPointerExit");
+                _gazedAtObject = null;
+                return;
+            }
+
+            
             if (_gazedAtObject != hit.transform.gameObject)
             {
                 // New GameObject.
                 _gazedAtObject?.SendMessage("OnPointerExit");
                 _gazedAtObject = hit.transform.gameObject;
                 _gazedAtObject.SendMessage("OnPointerEnter");
+                isLooking = true;
+                                               
             }
+
+            if (isLooking)            
+            {
+                time_counter += Time.deltaTime;
+                if (time_counter > delay)
+                {
+                    _gazedAtObject.SendMessage("OnPointerClick");
+                    time_counter = 0;
+                }
+            }
+            
+
         }
+       
         else
         {
             // No GameObject detected in front of the camera.
             _gazedAtObject?.SendMessage("OnPointerExit");
             _gazedAtObject = null;
+            time_counter = 0;
+            isLooking = false;
         }
 
         // Checks for screen touches.
